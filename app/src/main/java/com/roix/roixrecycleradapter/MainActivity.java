@@ -21,48 +21,12 @@ public class MainActivity extends AppCompatActivity implements RoixRecyclerAdapt
         setContentView(R.layout.activity_main);
         RecyclerView recyclerView=(RecyclerView)findViewById(R.id.recycle_view);
         adapter=new RoixRecyclerAdapter(this,this);
-        adapter.bindToRecyclerView(recyclerView);
-
-        List<Object> pojos=generate();
-        try {
-            adapter.addItems( pojos,RecyclerItem.class);
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        }
-
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
+        adapter.addItems(generate(),new RecyclerItem());
 
     }
 
-    @Override
-    public void onClick(View view, Object item) {
-        ItemPojo pojo=(ItemPojo) item;
-
-        Log.d("MainActivity","onClick "+pojo.getText1());
-        //adapter.clearData();
-
-    }
-
-    @Override
-    public void onScrolled(int size) {
-        Log.d("MainActivity","onScrolled "+size);
-
-        android.os.Handler handler=new android.os.Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    adapter.addItems(generate(), RecyclerItem2.class);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                } catch (InstantiationException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        },1000);
-    }
 
     private int count=0;
     private List<Object> generate(){
@@ -75,6 +39,13 @@ public class MainActivity extends AppCompatActivity implements RoixRecyclerAdapt
             count++;
         }
         return list;
+    }
+
+    @Override
+    public void onEvent(int type, Object content, Object item) {
+        ItemPojo pojo= (ItemPojo) item;
+        Log.d("MainActivity","onEvent "+content+" "+type+" "+pojo.getText1()+" "+pojo.getText2() );
+
     }
 
     public static class ItemPojo{
@@ -94,71 +65,50 @@ public class MainActivity extends AppCompatActivity implements RoixRecyclerAdapt
             return text2;
         }
     }
-    public static class RecyclerItem extends RoixRecyclerAdapter.ItemView{
+    public static class RecyclerItem implements RoixRecyclerAdapter.ItemRenderer<ItemPojo> {
 
         private TextView textView;
         private TextView textView2;
         private Button button;
         private Button button2;
-
+        private int EVENT_ON_CLICK=1;
+        private int EVENT_ON_LONG_CLICK=2;
         @Override
         public int getResID() {
             return R.layout.recycler_item;
         }
 
         @Override
-        public void create(View v, View.OnClickListener listener) {
-
+        public void create(View v, final RoixRecyclerAdapter.ItemEventListener listener) {
             textView=(TextView)v.findViewById(R.id.textView);
             textView2=(TextView)v.findViewById(R.id.textView2);
             button=(Button)v.findViewById(R.id.button);
             button2=(Button)v.findViewById(R.id.button2);
-            button.setOnClickListener(listener);
-            button2.setOnClickListener(listener);
+            View.OnClickListener clickListener=new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    listener.OnEvent(EVENT_ON_CLICK,"EVENT_ON_CLICK");
+                }
+            };
+            button.setOnClickListener(clickListener);
+            button2.setOnClickListener(clickListener);
+            v.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    listener.OnEvent(EVENT_ON_LONG_CLICK,"EVENT_ON_LONG_CLICK");
+                    return false;
+                }
+            });
+
         }
 
         @Override
-        public void bind(Object item) {
-
-            ItemPojo pojo=(ItemPojo) item;
+        public void bind(ItemPojo pojo) {
             Log.d("MainActivity","bind "+pojo.getText1());
-
             textView.setText(pojo.getText1());
             textView2.setText(pojo.getText2());
         }
 
-    }
-    public static class RecyclerItem2 extends RoixRecyclerAdapter.ItemView{
-        private TextView textView;
-        private TextView textView2;
-        private Button button;
-        private Button button2;
 
-
-        @Override
-        public int getResID() {
-            return R.layout.recycler_item_2;
-        }
-
-        @Override
-        public void create(View v, View.OnClickListener listener) {
-            textView=(TextView)v.findViewById(R.id.textView3);
-            textView2=(TextView)v.findViewById(R.id.textView4);
-            button=(Button)v.findViewById(R.id.button3);
-            button2=(Button)v.findViewById(R.id.button4);
-            button.setOnClickListener(listener);
-            button2.setOnClickListener(listener);
-
-        }
-
-        @Override
-        public void bind(Object item) {
-            ItemPojo pojo=(ItemPojo) item;
-            Log.d("MainActivity","bind "+pojo.getText1());
-
-            textView.setText(pojo.getText1());
-            textView2.setText(pojo.getText2());
-
-        }
     }
 }

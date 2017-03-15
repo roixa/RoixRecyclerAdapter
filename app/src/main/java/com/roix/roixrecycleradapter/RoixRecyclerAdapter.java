@@ -20,7 +20,7 @@ import java.util.Map;
  */
 
 public class RoixRecyclerAdapter extends RecyclerView.Adapter<RoixRecyclerAdapter.RoixViewHolder> {
-    private List<ItemView> itemTypes;
+    private List<ItemRenderer> itemRenderers;
     private List<Object> items;
     private Context context;
     private EventListener eventListener;
@@ -30,37 +30,19 @@ public class RoixRecyclerAdapter extends RecyclerView.Adapter<RoixRecyclerAdapte
         this.context=context;
         this.eventListener=eventListener;
     }
-    public void bindToRecyclerView(RecyclerView recyclerView){
-        recyclerView.setLayoutManager(new LinearLayoutManager(context));
-        recyclerView.setAdapter(this);
-        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                if (!recyclerView.canScrollVertically(-1)) {
-                    //onScrolledToTop();
-                } else if (!recyclerView.canScrollVertically(1)) {
-                    eventListener.onScrolled(items.size());
-                    //onScrolledToBottom();
-                } else if (dy < 0) {
-                    //onScrolledUp();
-                } else if (dy > 0) {
-                    //onScrolledDown();
-                }
-            }
-        });
-    }
+
 
     @Override
     public RoixViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
 
-        ItemView itemView=itemTypes.get(viewType);
+        ItemRenderer itemRenderer=itemRenderers.get(viewType);
         Log.d("RoixRecyclerAdapter","onCreateViewHolder "+viewType);
 
-        View view = LayoutInflater.from(context).inflate(itemView.getResID(), parent, false);
+        View view = LayoutInflater.from(context).inflate(itemRenderer.getResID(), parent, false);
 
         RoixViewHolder holder=new RoixViewHolder(view,eventListener);
-        itemView.create(view,holder);
-        holder.setItemView(itemView);
+        itemRenderer.create(view,holder);
+        holder.setItemRenderer(itemRenderer);
         return holder;
 
 
@@ -69,9 +51,8 @@ public class RoixRecyclerAdapter extends RecyclerView.Adapter<RoixRecyclerAdapte
     @Override
     public void onBindViewHolder(RoixViewHolder holder, int position) {
         Log.d("RoixRecyclerAdapter","onBindViewHolder "+position);
-
         Object item=items.get(position);
-        holder.getItemView().bind(item);
+        holder.getItemRenderer().bind(item);
     }
 
     @Override
@@ -79,17 +60,20 @@ public class RoixRecyclerAdapter extends RecyclerView.Adapter<RoixRecyclerAdapte
         return position;
     }
 
-    public <T  extends ItemView> void addItems(List<Object>list, Class<T> clazz) throws IllegalAccessException, InstantiationException {
+    public  void addItems(List<Object>list,ItemRenderer itemRenderer )  {
         if(items==null)items=new ArrayList<>();
-        if(itemTypes==null)itemTypes=new ArrayList<>();
+        if(itemRenderers==null)itemRenderers=new ArrayList<>();
         int startedSize=items.size();
         for(int i=0;i<list.size();i++){
             Log.d("RoixRecyclerAdapter","addItems "+startedSize+" "+i);
             items.add(list.get(i));
-            itemTypes.add(clazz.newInstance());
-
+            itemRenderers.add(itemRenderer);
         }
         notifyDataSetChanged();
+    }
+
+    public void setItems(List<Object>list,ItemRenderer itemRenderer){
+
     }
 
     @Override
@@ -99,25 +83,29 @@ public class RoixRecyclerAdapter extends RecyclerView.Adapter<RoixRecyclerAdapte
         return 0;
     }
     public void clearData(){
+        if(items!=null)items.clear();
         items=null;
         notifyDataSetChanged();
     }
 
     public interface EventListener{
-        void onClick(View view,Object item);
-        void onScrolled(int size);
+        void onEvent(int type,Object content,Object item);
     }
 
-    public static abstract class ItemView{
-        public abstract int getResID();
-        public abstract void create(View v, View.OnClickListener listener);
-        public abstract void bind(Object item);
+    public interface ItemEventListener{
+        void OnEvent(int type,Object content);
     }
 
-    public class RoixViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener{
+    public interface ItemRenderer<T>{
+        int getResID();
+        void create(View v, ItemEventListener listener);
+        void bind(T item);
+    }
+
+    public class RoixViewHolder extends RecyclerView.ViewHolder implements ItemEventListener{
 
         private EventListener listener;
-        private ItemView itemView;
+        private ItemRenderer itemRenderer;
 
         public RoixViewHolder(View view,EventListener listener) {
             super(view);
@@ -125,16 +113,16 @@ public class RoixRecyclerAdapter extends RecyclerView.Adapter<RoixRecyclerAdapte
         }
 
         @Override
-        public void onClick(View v) {
-            listener.onClick(v,items.get(getAdapterPosition()));
+        public void OnEvent(int type, Object content) {
+            listener.onEvent(type,content,items.get(getAdapterPosition()));
         }
 
-        public ItemView getItemView() {
-            return itemView;
+        public ItemRenderer getItemRenderer() {
+            return itemRenderer;
         }
 
-        public void setItemView(ItemView itemView) {
-            this.itemView = itemView;
+        public void setItemRenderer(ItemRenderer itemRenderer) {
+            this.itemRenderer = itemRenderer;
         }
     }
 
